@@ -26,21 +26,58 @@ never appear at all.
    recording and confirm BTC, ETH and SOL all carry a price and a 24h
    change.
 
-## Shot list with target timings (total about 90 to 120 seconds)
+## Official final video requirements (Duan, locked 24 Nov 2026)
 
-- 0 to 8s: Home card, digest count, one card at a time.
-- 8 to 25s: One message card, sender, first line, urgency tag.
-- 25 to 45s: Draft card (Gemini draft), then one tap send, Sent card.
-- 45 to 60s: Voice reply path (added 26 Nov), if it is in the final build.
-- 60 to 90s: Market segment: BTC card held about 8s, ETH card about 8s,
-  SOL card about 8s, each with live price and 24h change readable.
-- 90 to 105s: End card, what Glance is, track, closing line.
+These are binding requirements for the final video, not suggestions.
 
-## Recording notes
+1. CLEAN SCREEN ONLY. The draft video is a recording of the whole
+   1280x800 simulator window: large empty black areas, simulator buttons
+   and a mouse cursor are visible, and the glasses display takes only a
+   small part of the frame, which looks messy. The final video MUST be
+   cropped to the glasses display area only (the 576x288 display),
+   scaled up neatly to fill the frame at the correct aspect ratio, with
+   no simulator chrome, no cursor, and no empty black margins.
+2. VOICE OVER REQUIRED. English narration explaining the flow (digest
+   arrives, open a message, AI draft, send, then Market). The voice must
+   sound natural and pass the project media QA rules: raw render speech
+   rate 140 to 175 words per minute, real sentence pauses, tempo fitting
+   never beyond 1.15x. Verify with silencedetect before calling it done.
+3. Clean structure and pacing (extends the Market note above): home,
+   one message, draft, sent, then the full Market segment with the BTC,
+   ETH and SOL cards each held for several seconds so prices are
+   readable. Calm transitions between cards, never rushed.
+4. Duration at most 3 minutes per the hackathon rules. A target of
+   about 60 to 90 seconds is enough when every feature is represented.
+
+The current draft video stays untouched as an internal archive. All of
+the requirements above apply to the final video recorded on 27 Nov.
+
+## Shot list with target timings (total about 60 to 90 seconds)
+
+- 0 to 6s: Home card, digest count, one card at a time.
+- 6 to 18s: One message card, sender, first line, urgency tag.
+- 18 to 35s: Draft card (Gemini draft), then one tap send, Sent card.
+- 35 to 48s: Voice reply path (added 26 Nov), if it is in the final build.
+- 48 to 78s: Market segment: BTC card held about 9s, ETH card about 9s,
+  SOL card about 9s, each with live price and 24h change readable.
+- 78 to 88s: End card, what Glance is, track, closing line.
+
+## Recording and post production notes
 
 - The automated recording scripts live in docs/ (run-simulator-video.sh,
   click.py). Rework the click sequence to follow the shot list above
   instead of walking every message card.
+- Crop in post with ffmpeg to the glasses display region of the
+  simulator window, then scale to a clean 1152x576 (2x of 576x288) or
+  1280x640 output. No simulator buttons, no cursor, no black margins
+  in the exported file. Determine the exact crop rectangle from a test
+  frame before the real recording.
+- Narration script is written to fit the shot timings at a natural
+  pace (about 150 words for a 60 to 90 second video at 140 to 175
+  wpm). Record or generate the voice over as its own track, mix it
+  over the cropped video, and run the media QA checks: raw render
+  duration versus word count, silencedetect pause structure, no tempo
+  fitting beyond 1.15x.
 - Verify the extracted frames after recording: home, message, draft,
   sent, and all three Market cards must each appear in the final cut
-  before upload.
+  before upload, and a frame check must confirm the crop is clean.
