@@ -182,7 +182,11 @@ notes live in SDK-NOTES.md; check there first on day 1.
 - [ ] Package the .ehpk with the evenhub CLI (optional for submission, do it
       anyway as a fallback artifact).
 - [ ] Record the demo video in the simulator: at most 3 minutes, showing read,
-      draft, one tap send, and the voice reply path.
+      draft, one tap send, and the voice reply path. Follow
+      docs/VIDEO-FINAL-PLAN.md: Duan's feedback on the 24 Nov draft video
+      (24 Nov 2026) requires a full Market segment after the send flow,
+      all three cards BTC, ETH and SOL held several seconds each with
+      live /prices values, never Market as a leftover at the end.
 - [ ] Finish README setup instructions so a judge can run everything.
 - [ ] Write the short description (problem, who it is for, how it works,
       track) and mirror it into docs/.
