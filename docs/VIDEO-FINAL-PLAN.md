@@ -84,6 +84,19 @@ the requirements above apply to the final video recorded on 27 Nov.
   confirmed against a test frame, then scaled to fill the output
   frame. The finished video frame is the display and nothing else, so
   the empty right pane disappears entirely.
+- Crop VERIFIED 24 Nov night, owner asked for the fit to be fixed and
+  checked: the exact display origin is x 660, y 0 (the 650 estimate
+  was 10px off). Applied crop=576:288:660:0 with scale to 1152x576 to
+  the draft recording and produced
+  docs/video/glance-demo-clean-2026-11-24.mp4 as a cleaned preview.
+  Frame checks at 3s, 12s, 20s, 26s and 31s: every card fills the
+  frame edge to edge, no text clipped on any side, pager line fully
+  visible, no simulator chrome, no empty margins. One leftover from
+  the original recording cannot be cropped out: in a few frames a
+  simulator hover tooltip overlaps the bottom pager line, because the
+  pointer stayed parked on the Click button while recording. Fix for
+  the final recording is in docs/click.py: after every click the
+  pointer parks in the far corner, so no tooltip can appear.
 - Narration script is written to fit the shot timings at a natural
   pace (about 150 words for a 60 to 90 second video at 140 to 175
   wpm). Record or generate the voice over as its own track, mix it
