@@ -127,13 +127,42 @@ notes live in SDK-NOTES.md; check there first on day 1.
 
 ## 25 Nov, AI drafts and glasses UI
 
-- [ ] Draft endpoint: short reply drafted per message with an LLM
+- [x] Draft endpoint: short reply drafted per message with an LLM
       (Gemini free tier), keys on the backend only.
-- [ ] Digest card and draft card in the glasses UI: tap to send the draft via
+      Done early, 24 Nov evening WITA: POST /draft in backend/server.js
+      calls Gemini (model gemini-2.0-flash, key read from backend/.env
+      GEMINI_API_KEY, never in the app or repo) and falls back to a local
+      draft generator when no key is configured or Gemini fails, so the
+      glasses flow never breaks. Verified live 24 Nov: draft for the
+      "Hey" message returned a usable reply. OPEN, needs Duan: create a
+      free Gemini API key in Google AI Studio and put it in
+      backend/.env as GEMINI_API_KEY, then the draft source flips from
+      fallback to gemini automatically. No key was configured at build
+      time, so live drafts so far are the fallback source, stated
+      honestly in the UI as AI draft.
+- [x] Digest card and draft card in the glasses UI: tap to send the draft via
       the bot, swipe or next input to move on.
-- [ ] Market card in the glasses UI: one card per watched coin with price and
+      Done 24 Nov evening: src/main.ts rewritten to load live cards from
+      the backend. Tap on a message card fetches its draft and shows the
+      draft card, tap on the draft card sends it, swipe down moves to
+      the next card, swipe up goes back, double tap exits. Proven by
+      automated simulator clicks (docs/click.py): message card, draft
+      card, and sent card screenshots in docs/ dated 2026-11-24.
+- [x] Market card in the glasses UI: one card per watched coin with price and
       24h change from the HyperLiquid price endpoint (added 23 Nov).
-- [ ] Send path verified end to end in a demo chat we control.
+      Done 24 Nov evening: one Market card per coin after the message
+      cards. Screenshot docs/simulator-market-card-2026-11-24.png shows
+      BTC $59,940, 24h -2.17 percent, read only, no trading.
+- [x] Send path verified end to end in a demo chat we control.
+      Done 24 Nov evening, first live sendMessage ever for this bot:
+      POST /send delivered to chat 978207496, Telegram message_id 5,
+      ok true. A second send happened through the actual glasses UI in
+      the simulator (tap message, tap draft, tap send), Telegram
+      message_id 6, stored in the digest as sent-6, with the Sent via
+      @GlanceDigestBot card screenshot in docs/. The price alert
+      sendMessage leg uses the same botApi sendMessage call and is now
+      covered by this proof, although a 2 percent in 60 seconds alert
+      trigger itself has still not occurred live.
 
 ## 26 Nov, voice path and polish
 

@@ -34,6 +34,17 @@ const TELEGRAM_HELPER = path.join(
   'workspace/custom-connectors/custom.telegram-bot/bin/telegram_api.py'
 );
 
+// Optional local .env (gitignored): GEMINI_API_KEY for AI drafts.
+try {
+  const envText = fs.readFileSync(path.join(ROOT, '.env'), 'utf8');
+  for (const line of envText.split('\n')) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.+)\s*$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+  }
+} catch {}
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+
 const PORT = Number(process.env.PORT || 3000);
 const POLL_TIMEOUT_S = 50; // long polling, never short interval polling
 const POLL_ERROR_BACKOFF_MS = 5000;
@@ -276,6 +287,54 @@ async function priceLoop() {
   }
 }
 
+// ---------- AI draft replies (Gemini free tier, fallback local) ----------
+
+function fallbackDraft(item) {
+  const text = (item.text || '').trim();
+  const sender = (item.sender || 'there').split(' ')[0];
+  const lower = text.toLowerCase();
+  if (!text || text.startsWith('/')) return 'Hi ' + sender + ', thanks for your message. Got it, I will follow up shortly.';
+  if (lower.includes('?')) return 'Hi ' + sender + ', thanks for asking. Let me check and I will get back to you shortly.';
+  if (lower.includes('urgent') || lower.includes('asap') || lower.includes('deadline')) return 'Hi ' + sender + ', got it, this is urgent on my side too. I am on it now and will update you soon.';
+  if (lower.includes('meeting')) return 'Hi ' + sender + ', thanks, that meeting time works for me. See you then.';
+  if (lower.includes('hey') || lower.includes('hi') || lower.includes('hello')) return 'Hey ' + sender + ', good to hear from you. How can I help?';
+  return 'Hi ' + sender + ', thanks for your message. Got it, I will follow up shortly.';
+}
+
+async function geminiDraft(item) {
+  if (!GEMINI_API_KEY) return null;
+  const prompt = 'You draft a short reply on behalf of the recipient of a Telegram message, to be sent from smart glasses with one tap. Reply with ONLY the reply text, no quotes, no preamble. Keep it under 30 words, friendly and clear.\n\nSender: ' + item.sender + '\nMessage: ' + item.text;
+  const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 80, temperature: 0.4 } }),
+  });
+  if (!res.ok) throw new Error('Gemini HTTP ' + res.status);
+  const data = await res.json();
+  const out = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts ? data.candidates[0].content.parts.map(p => p.text || '').join('').trim() : '';
+  return out || null;
+}
+
+const draftCache = new Map();
+async function draftFor(item) {
+  if (draftCache.has(item.id)) return draftCache.get(item.id);
+  let draft = null; let source = 'fallback';
+  try { draft = await geminiDraft(item); if (draft) source = 'gemini'; } catch (e) { log('draft: gemini failed:', e.message); }
+  if (!draft) draft = fallbackDraft(item);
+  const result = { id: item.id, draft, source, model: source === 'gemini' ? GEMINI_MODEL : null };
+  draftCache.set(item.id, result);
+  return result;
+}
+
+function readBody(req) {
+  return new Promise((resolve) => {
+    let data = '';
+    req.on('data', (c) => { data += c; if (data.length > 65536) req.destroy(); });
+    req.on('end', () => { try { resolve(data ? JSON.parse(data) : {}); } catch { resolve({}); } });
+    req.on('error', () => resolve({}));
+  });
+}
+
 // ---------- HTTP API for the glasses app ----------
 
 function sendJson(res, status, value) {
@@ -283,7 +342,7 @@ function sendJson(res, status, value) {
   res.writeHead(status, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   });
   res.end(body);
@@ -303,10 +362,30 @@ const server = http.createServer(async (req, res) => {
         time: new Date().toISOString(),
         digestItems: digest.length,
         knownChatId: state.knownChatId,
+        geminiConfigured: Boolean(GEMINI_API_KEY),
+        draftSource: GEMINI_API_KEY ? 'gemini' : 'fallback',
         pricesUpdatedAt: priceCache.updatedAt,
       });
     } else if (url.pathname === '/digest') {
       sendJson(res, 200, { items: [...digest].reverse() });
+    } else if (url.pathname === '/draft' && (req.method === 'GET' || req.method === 'POST')) {
+      const body = req.method === 'POST' ? await readBody(req) : {};
+      const id = body.id || url.searchParams.get('id');
+      const item = digest.find((d) => d.id === id) || (body.text ? { id: id || 'adhoc', sender: body.sender || 'Unknown', text: body.text } : null);
+      if (!item) { sendJson(res, 404, { ok: false, error: 'message not found' }); return; }
+      const result = await draftFor(item);
+      sendJson(res, 200, { ok: true, ...result, geminiConfigured: Boolean(GEMINI_API_KEY) });
+    } else if (url.pathname === '/send' && req.method === 'POST') {
+      const body = await readBody(req);
+      const chatId = body.chatId || body.chat_id || state.knownChatId;
+      const text = (body.text || '').toString().trim();
+      if (!chatId || !text) { sendJson(res, 400, { ok: false, error: 'chatId and text are required' }); return; }
+      const tg = await botApi('sendMessage', { chat_id: chatId, text });
+      if (tg && tg.ok) {
+        pushDigest({ id: 'sent-' + (tg.result.message_id || Date.now()), kind: 'sent', chatId, sender: 'Glance (you)', text, firstLine: text.split('\n')[0], timestamp: new Date().toISOString(), urgency: 'normal' });
+        log('send: message sent to chat', chatId, 'message_id', tg.result.message_id);
+      }
+      sendJson(res, tg && tg.ok ? 200 : 502, { ok: Boolean(tg && tg.ok), result: tg && tg.result ? { message_id: tg.result.message_id, chat_id: tg.result.chat && tg.result.chat.id, date: tg.result.date } : null, telegram: tg ? { ok: tg.ok, description: tg.description || null } : null });
     } else if (url.pathname === '/prices') {
       if (!priceCache.coins.length) {
         const coins = await fetchPrices();

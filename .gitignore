@@ -7,3 +7,5 @@ backend/data/digest.json
 .env
 .env.local
 .DS_Store
+
+backend/.env

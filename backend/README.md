@@ -37,6 +37,16 @@ VM restart.
   per message.
 - GET /prices: latest prices as { updatedAt, coins: [{ symbol, markPx,
   prevDayPx, change24hPct }] } for BTC, ETH, SOL.
+- POST /draft: body { id } or { text, sender }. Returns a short draft
+  reply for that digest message. Uses Gemini (free tier, model
+  gemini-2.0-flash) when GEMINI_API_KEY is set in backend/.env, and a
+  local fallback draft generator otherwise, so the response always
+  carries { draft, source } with source gemini or fallback.
+- POST /send: body { chatId, text }. Sends the text into that chat with
+  the bot through the vault helper, appends a sent entry to the digest,
+  and returns the Telegram message_id. First live proof 24 Nov 2026:
+  message_id 5 by API and message_id 6 through the glasses UI, both to
+  the demo chat 978207496.
 
 ## State files (all inside this folder, never /tmp)
 
