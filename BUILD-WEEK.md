@@ -34,10 +34,10 @@ notes live in SDK-NOTES.md; check there first on day 1.
       Done 23 Nov: bot "Glance", username @GlanceDigestBot (first choice
       GlanceG2Bot was taken), token verified live with getMe the same day.
       Token itself is NOT stored in this repo; it goes through the secure
-      vault connector (custom.telegram-bot). Remaining small step before the
-      24 Nov backend day: turn the bot privacy mode OFF in BotFather
-      (/setprivacy, Disable) so the bot can read all messages in the demo
-      group chats; getMe on 23 Nov showed can_read_all_group_messages false.
+      vault connector (custom.telegram-bot). Privacy mode turned OFF by
+      Duan in BotFather on 23 Nov and verified the same day: getMe now
+      shows can_read_all_group_messages true, so the bot can read all
+      messages in the demo group chats.
 - [x] Decide the template: evaluate minimal, text-heavy (digest reader), and
       asr (voice reply) from the official templates, then scaffold into src/.
       Done 23 Nov: text-heavy chosen. The digest reader is the core of
@@ -73,20 +73,57 @@ notes live in SDK-NOTES.md; check there first on day 1.
 
 ## 24 Nov, backend digest pipeline
 
-- [ ] Backend service skeleton in backend/ (runs locally, token in env only).
+- [x] Backend service skeleton in backend/ (runs locally, token in env only).
       Latency rule (owner concern 23 Nov): use long polling with a 50 second
       timeout, never short interval polling, and keep the backend always on
       with an auto restart supervisor. No sleeping free tier host for the demo
       or judging window; Telegram queues updates up to 24 hours, so a restart
       loses nothing as long as the offset is persisted.
-- [ ] Telegram Bot API polling for the demo chats we control; message store.
-- [ ] HyperLiquid price endpoint: poll the public info API (no key) for the
+      Done 24 Nov: backend/server.js, a single Node file with no
+      dependencies (Node v24 on the VM), serving port 3000. Stronger than
+      the token in env plan: the token is never in env, code, or logs at
+      all; every Bot API call goes through the secure vault connector
+      helper (custom.telegram-bot). Always on via the supervisor script
+      backend/run.sh (restart on failure, logs in backend/logs/); a
+      systemd user unit (backend/glance-backend.service) ships alongside
+      for machines with a user bus, but this VM has none, so run.sh is
+      the mechanism here. Hosting decision recorded below and in
+      backend/README.md.
+- [x] Telegram Bot API polling for the demo chats we control; message store.
+      Done 24 Nov: getUpdates long polling with a 50 second timeout,
+      offset persisted in backend/data/state.json after every cycle.
+      Verified live the same day: the first poll ingested a real queued
+      message (a stray /setprivacy text sent to the bot on 23 Nov during
+      the BotFather step, sender Allin, chat 978207496), stored it in
+      backend/data/digest.json, and a later full 50 second cycle completed
+      cleanly with 0 updates. The offset and the digest both survived a
+      supervisor restart in testing. The known chat id learned from that
+      message is what price alerts will post into.
+- [x] HyperLiquid price endpoint: poll the public info API (no key) for the
       watchlist (BTC, ETH, SOL), serve latest price and 24h change; price alert
       rule posts a bot alert into the demo chat when a watched coin crosses the
       move threshold (added 23 Nov, owner direction, see PLAN.md).
-- [ ] Digest endpoint: new messages and channel posts as a one at a time list
+      Done 24 Nov: GET /prices serves live mark price and 24h change
+      (computed from prevDayPx), refreshed every 60 seconds. Observed
+      live on 24 Nov about 09:43 WITA: BTC $61,475 (+0.78 percent 24h),
+      ETH $1,717.4 (+0.25 percent), SOL $72.463 (+2.80 percent). Alert
+      rule implemented: a move of 2 percent or more versus the previous
+      check appends an alert entry to the digest and posts it into the
+      known demo chat via the bot. Not yet triggered live, because moves
+      between 60 second checks stayed well under 2 percent during
+      testing; the sendMessage leg is therefore still untested and gets
+      its first live test with the 25 Nov send path verification.
+- [x] Digest endpoint: new messages and channel posts as a one at a time list
       (sender, first line, urgency tag).
+      Done 24 Nov: GET /digest returns the store newest first; each item
+      carries id, kind, sender, full text, firstLine, timestamp, and an
+      urgency tag from a keyword heuristic (high, medium, normal), the
+      shape the glasses UI renders as one card per message. GET /health
+      reports service status alongside.
 - [ ] Glasses app reads the digest endpoint through the whitelisted domain.
+      Backend side ready 24 Nov: endpoints live on http://localhost:3000,
+      which app.json already whitelists, with CORS open for the WebView.
+      The UI wiring itself is the 25 Nov work below.
 
 ## 25 Nov, AI drafts and glasses UI
 
@@ -167,3 +204,14 @@ Gaps and open questions (flagged 21 Nov 2026, from PLAN.md itself):
   where the backend is hosted or how long it must stay up. Judges may test
   after submission, so hosting must last at least through Demo Day, 3 Dec.
   Decide the host on 24 Nov when the backend skeleton is built.
+  Decided 24 Nov: the backend is hosted on this always-on build VM under
+  the run.sh supervisor, through Demo Day on 3 Dec. The demo path is the
+  simulator on this same VM against http://localhost:3000, already
+  whitelisted in app.json, so the demo needs no public host; the VM is on
+  24 hours a day and free, and a sleeping free tier host is ruled out by
+  the latency rule (50 plus second wake hits would break the digest in
+  front of judges). Restart safety is the supervisor plus state persisted
+  in backend/data/. Full reasoning in backend/README.md. One contingency:
+  if the DoraHacks form checked on 27 to 28 Nov requires a public backend
+  URL, a public hostname must be pointed at this VM and added to the
+  app.json whitelist before submitting; the host itself does not change.

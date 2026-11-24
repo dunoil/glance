@@ -1,0 +1,14 @@
+[Unit]
+Description=Glance backend (Telegram digest and HyperLiquid prices)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/workspace/even-realities-entry/backend
+ExecStart=/usr/bin/node %h/workspace/even-realities-entry/backend/server.js
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

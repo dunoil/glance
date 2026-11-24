@@ -1,0 +1,1 @@
+{"description":"Glance backend: Telegram digest pipeline and HyperLiquid prices for the Even Realities G2 app.","engines":{"node":">=20"},"main":"server.js","name":"glance-backend","private":true,"scripts":{"start":"node server.js"},"type":"commonjs","version":"0.1.0"}

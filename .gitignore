@@ -2,6 +2,8 @@ node_modules/
 dist/
 *.ehpk
 *.log
+backend/data/state.json
+backend/data/digest.json
 .env
 .env.local
 .DS_Store
