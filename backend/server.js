@@ -11,7 +11,7 @@
  * - Serves the glasses app on port 3000 (whitelisted in app.json):
  *     GET /health  service status
  *     GET /digest  stored messages and price alerts, newest first
- *     GET /prices  live HyperLiquid mark prices for BTC, ETH, SOL
+ *     GET /prices  live HyperLiquid mark prices for BTC, ETH, SOL, HYPE, XRP
  * - Price alerts: on each refresh, a watched coin that moved 2 percent or
  *   more versus the previous check is appended to the digest and, when a
  *   demo chat id is known, also sent into that chat with the bot.
@@ -50,7 +50,7 @@ const POLL_TIMEOUT_S = 50; // long polling, never short interval polling
 const POLL_ERROR_BACKOFF_MS = 5000;
 const PRICE_INTERVAL_MS = 60 * 1000;
 const ALERT_THRESHOLD_PCT = 2;
-const WATCHLIST = ['BTC', 'ETH', 'SOL'];
+const WATCHLIST = ['BTC', 'ETH', 'SOL', 'HYPE', 'XRP'];
 const HYPERLIQUID_INFO_URL = 'https://api.hyperliquid.xyz/info';
 const DIGEST_LIMIT = 200;
 

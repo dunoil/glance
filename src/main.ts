@@ -10,7 +10,7 @@ import { paginate } from './paginate'
 // Glance glasses UI, 25 Nov 2026.
 // Reads the live backend (whitelisted http://localhost:3000):
 //   GET /digest  one card per Telegram message
-//   GET /prices  one Market card per watched coin (BTC, ETH, SOL)
+//   GET /prices  one Market card per watched coin (BTC, ETH, SOL, HYPE, XRP)
 //   POST /draft  AI draft reply for the selected message (Gemini, backend only)
 //   POST /send   one tap send of the draft through the Telegram bot
 // Navigation on G2: tap advances, and on a message card tap opens its draft
@@ -87,7 +87,7 @@ async function loadCards() {
   ]
   items.slice(0, 10).forEach((item, i) => built.push({ kind: 'message', text: messageCard(item, i, Math.min(items.length, 10)), item }))
   coins.forEach((c) => built.push({ kind: 'market', text: marketCard(c) }))
-  built.push({ kind: 'info', text: 'Glance\n\nEnd of digest.\nMarket cards: BTC, ETH, SOL from HyperLiquid.\n\nDouble tap: exit' })
+  built.push({ kind: 'info', text: 'Glance\n\nEnd of digest.\nMarket cards: BTC, ETH, SOL, HYPE, XRP from HyperLiquid.\n\nDouble tap: exit' })
   cards = built
 }
 

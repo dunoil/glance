@@ -158,6 +158,20 @@ notes live in SDK-NOTES.md; check there first on day 1.
       Done 24 Nov evening: one Market card per coin after the message
       cards. Screenshot docs/simulator-market-card-2026-11-24.png shows
       BTC $59,940, 24h -2.17 percent, read only, no trading.
+      EXPANDED 24 Nov night, owner direction: the watchlist grows from
+      3 coins to 5: BTC, ETH, SOL, HYPE, XRP. HYPE is the native
+      HyperLiquid token, XRP is a large market cap coin, and both are
+      served by the same metaAndAssetCtxs endpoint. The backend
+      WATCHLIST, GET /prices, the 2 percent price alert rule, and the
+      glasses Market cards all cover the five coins (the UI builds one
+      card per coin returned by /prices). Verified live the same night:
+      /prices returned BTC $60,315 (-4.05 percent), ETH $1,690.9
+      (-4.91 percent), SOL $69.758 (-8.75 percent), HYPE $62.11
+      (-7.82 percent), XRP $0.92207 (-7.04 percent). Screenshots:
+      docs/simulator-market-btc-2026-11-24.png and
+      docs/simulator-market-hype-2026-11-24.png. Earlier entries in
+      this checklist that mention the original 3 coin watchlist are
+      the historical 24 Nov record and are superseded by this note.
 - [x] Send path verified end to end in a demo chat we control.
       Done 24 Nov evening, first live sendMessage ever for this bot:
       POST /send delivered to chat 978207496, Telegram message_id 5,
@@ -185,7 +199,7 @@ notes live in SDK-NOTES.md; check there first on day 1.
       draft, one tap send, and the voice reply path. Follow
       docs/VIDEO-FINAL-PLAN.md: Duan's feedback on the 24 Nov draft video
       (24 Nov 2026) requires a full Market segment after the send flow,
-      all three cards BTC, ETH and SOL held several seconds each with
+      all five cards BTC, ETH, SOL, HYPE and XRP held several seconds each with
       live /prices values, never Market as a leftover at the end.
 - [ ] Finish README setup instructions so a judge can run everything.
 - [ ] Write the short description (problem, who it is for, how it works,

@@ -36,7 +36,7 @@ VM restart.
   timestamp, and urgency, the shape the glasses UI renders as one card
   per message.
 - GET /prices: latest prices as { updatedAt, coins: [{ symbol, markPx,
-  prevDayPx, change24hPct }] } for BTC, ETH, SOL.
+  prevDayPx, change24hPct }] } for BTC, ETH, SOL, HYPE, XRP.
 - POST /draft: body { id } or { text, sender }. Returns a short draft
   reply for that digest message. Uses Gemini (free tier, model
   gemini-2.0-flash) when GEMINI_API_KEY is set in backend/.env, and a

@@ -16,14 +16,14 @@ never appear at all.
 ## Required structure and pacing for the final video
 
 1. Give the Market segment a clear, long enough share of the screen:
-   show all three cards, BTC, ETH and SOL, one at a time, and hold each
+   show all five cards, BTC, ETH, SOL, HYPE and XRP, one at a time, and hold each
    card for several seconds so the price and the 24h percent are readable.
 2. Do not leave Market as a leftover at the end. Story order: home, one
    message, draft, sent, then the full Market segment, so the two main
    features (messaging and market) carry equal weight.
 3. Make sure the Market card prices are filled from live /prices at
    recording time, never an empty card. Check GET /prices right before
-   recording and confirm BTC, ETH and SOL all carry a price and a 24h
+   recording and confirm BTC, ETH, SOL, HYPE and XRP all carry a price and a 24h
    change.
 
 ## Official final video requirements (Duan, locked 24 Nov 2026)
@@ -44,7 +44,7 @@ These are binding requirements for the final video, not suggestions.
    never beyond 1.15x. Verify with silencedetect before calling it done.
 3. Clean structure and pacing (extends the Market note above): home,
    one message, draft, sent, then the full Market segment with the BTC,
-   ETH and SOL cards each held for several seconds so prices are
+   ETH, SOL, HYPE and XRP cards each held for several seconds so prices are
    readable. Calm transitions between cards, never rushed.
 4. Duration at most 3 minutes per the hackathon rules. A target of
    about 60 to 90 seconds is enough when every feature is represented.
@@ -58,9 +58,10 @@ the requirements above apply to the final video recorded on 27 Nov.
 - 6 to 18s: One message card, sender, first line, urgency tag.
 - 18 to 35s: Draft card (Gemini draft), then one tap send, Sent card.
 - 35 to 48s: Voice reply path (added 26 Nov), if it is in the final build.
-- 48 to 78s: Market segment: BTC card held about 9s, ETH card about 9s,
-  SOL card about 9s, each with live price and 24h change readable.
-- 78 to 88s: End card, what Glance is, track, closing line.
+- 48 to 83s: Market segment, five cards (watchlist expanded to five
+  coins on 24 Nov, owner direction): BTC, ETH, SOL, HYPE and XRP, each
+  held about 7s with live price and 24h change readable.
+- 83 to 92s: End card, what Glance is, track, closing line.
 
 ## Recording and post production notes
 
@@ -79,5 +80,5 @@ the requirements above apply to the final video recorded on 27 Nov.
   duration versus word count, silencedetect pause structure, no tempo
   fitting beyond 1.15x.
 - Verify the extracted frames after recording: home, message, draft,
-  sent, and all three Market cards must each appear in the final cut
+  sent, and all five Market cards must each appear in the final cut
   before upload, and a frame check must confirm the crop is clean.

@@ -35,7 +35,8 @@ One glance, one tap: your Telegram, answered from your glasses.
   mark/mid price, previous day price, and 24h volume for 235 perpetual assets.
 - How it fits without diluting the Telegram core:
   - Market card in the glasses app: one glanceable card per watched coin (BTC, ETH,
-    SOL by default) showing price and 24h change, fed by a backend price endpoint.
+    SOL by default; expanded 24 Nov to five coins: BTC, ETH, SOL, HYPE, XRP)
+    showing price and 24h change, fed by a backend price endpoint.
   - Price alerts through the bot: when a watched coin moves beyond a threshold, the
     bot posts an alert into the demo chat, and the alert flows through the normal
     digest like any other message. HyperLiquid data enters through Telegram, so the
