@@ -130,16 +130,21 @@ notes live in SDK-NOTES.md; check there first on day 1.
 - [x] Draft endpoint: short reply drafted per message with an LLM
       (Gemini free tier), keys on the backend only.
       Done early, 24 Nov evening WITA: POST /draft in backend/server.js
-      calls Gemini (model gemini-2.0-flash, key read from backend/.env
-      GEMINI_API_KEY, never in the app or repo) and falls back to a local
-      draft generator when no key is configured or Gemini fails, so the
-      glasses flow never breaks. Verified live 24 Nov: draft for the
-      "Hey" message returned a usable reply. OPEN, needs Duan: create a
-      free Gemini API key in Google AI Studio and put it in
-      backend/.env as GEMINI_API_KEY, then the draft source flips from
-      fallback to gemini automatically. No key was configured at build
-      time, so live drafts so far are the fallback source, stated
-      honestly in the UI as AI draft.
+      calls Gemini and falls back to a local draft generator when Gemini
+      is unavailable, so the glasses flow never breaks. Key handling:
+      a free Gemini API key was created in Google AI Studio on 24 Nov
+      (project Default Gemini Project, Free tier) and stored by Duan in
+      the secure vault as the custom.gemini connector, never in the app,
+      the repo, or env files. The backend calls Gemini through the
+      vault helper (custom.gemini/bin/gemini_generate.py) when no
+      GEMINI_API_KEY env var is set. Model note: gemini-2.0-flash and
+      gemini-2.5-flash return 404 for new keys, so the working model is
+      gemini-3.5-flash-lite. Verified live 24 Nov after the key was
+      connected: POST /draft for the stored messages returned source
+      gemini with real Gemini drafts, for example "Hey Allin! What's
+      up?" for the "Hey" message. Drafts served before the key was
+      connected were the fallback source, stated honestly in the UI
+      as AI draft at the time.
 - [x] Digest card and draft card in the glasses UI: tap to send the draft via
       the bot, swipe or next input to move on.
       Done 24 Nov evening: src/main.ts rewritten to load live cards from

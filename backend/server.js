@@ -43,7 +43,7 @@ try {
   }
 } catch {}
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
 const PORT = Number(process.env.PORT || 3000);
 const POLL_TIMEOUT_S = 50; // long polling, never short interval polling
@@ -301,18 +301,39 @@ function fallbackDraft(item) {
   return 'Hi ' + sender + ', thanks for your message. Got it, I will follow up shortly.';
 }
 
-async function geminiDraft(item) {
-  if (!GEMINI_API_KEY) return null;
-  const prompt = 'You draft a short reply on behalf of the recipient of a Telegram message, to be sent from smart glasses with one tap. Reply with ONLY the reply text, no quotes, no preamble. Keep it under 30 words, friendly and clear.\n\nSender: ' + item.sender + '\nMessage: ' + item.text;
-  const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 80, temperature: 0.4 } }),
+const GEMINI_HELPER = path.join(
+  process.env.HOME || '/home/hatch',
+  'workspace/custom-connectors/custom.gemini/bin/gemini_generate.py'
+);
+
+function extractGeminiText(data) {
+  return data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts ? data.candidates[0].content.parts.map(p => p.text || '').join('').trim() : '';
+}
+
+function geminiViaHelper(prompt) {
+  return new Promise((resolve, reject) => {
+    execFile('python3', [GEMINI_HELPER, prompt, GEMINI_MODEL], { timeout: 70000, maxBuffer: 4 * 1024 * 1024 }, (err, stdout, stderr) => {
+      if (err) { reject(new Error((stderr || err.message || 'gemini helper failed').trim().slice(0, 300))); return; }
+      try { resolve(JSON.parse(stdout)); } catch (e) { reject(e); }
+    });
   });
-  if (!res.ok) throw new Error('Gemini HTTP ' + res.status);
-  const data = await res.json();
-  const out = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts ? data.candidates[0].content.parts.map(p => p.text || '').join('').trim() : '';
-  return out || null;
+}
+
+async function geminiDraft(item) {
+  const prompt = 'You draft a short reply on behalf of the recipient of a Telegram message, to be sent from smart glasses with one tap. Reply with ONLY the reply text, no quotes, no preamble. Keep it under 30 words, friendly and clear.\n\nSender: ' + item.sender + '\nMessage: ' + item.text;
+  if (GEMINI_API_KEY) {
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 80, temperature: 0.4 } }),
+    });
+    if (!res.ok) throw new Error('Gemini HTTP ' + res.status);
+    return extractGeminiText(await res.json()) || null;
+  }
+  // No env key: use the secure vault connector helper (custom.gemini).
+  // The key never appears in this process; the helper resolves it.
+  const data = await geminiViaHelper(prompt);
+  return extractGeminiText(data) || null;
 }
 
 const draftCache = new Map();
@@ -362,8 +383,8 @@ const server = http.createServer(async (req, res) => {
         time: new Date().toISOString(),
         digestItems: digest.length,
         knownChatId: state.knownChatId,
-        geminiConfigured: Boolean(GEMINI_API_KEY),
-        draftSource: GEMINI_API_KEY ? 'gemini' : 'fallback',
+        geminiConfigured: Boolean(GEMINI_API_KEY) || fs.existsSync(GEMINI_HELPER),
+        draftSource: 'gemini-via-vault-helper',
         pricesUpdatedAt: priceCache.updatedAt,
       });
     } else if (url.pathname === '/digest') {
@@ -374,7 +395,7 @@ const server = http.createServer(async (req, res) => {
       const item = digest.find((d) => d.id === id) || (body.text ? { id: id || 'adhoc', sender: body.sender || 'Unknown', text: body.text } : null);
       if (!item) { sendJson(res, 404, { ok: false, error: 'message not found' }); return; }
       const result = await draftFor(item);
-      sendJson(res, 200, { ok: true, ...result, geminiConfigured: Boolean(GEMINI_API_KEY) });
+      sendJson(res, 200, { ok: true, ...result, geminiConfigured: Boolean(GEMINI_API_KEY) || fs.existsSync(GEMINI_HELPER) });
     } else if (url.pathname === '/send' && req.method === 'POST') {
       const body = await readBody(req);
       const chatId = body.chatId || body.chat_id || state.knownChatId;
