@@ -97,6 +97,14 @@ the requirements above apply to the final video recorded on 27 Nov.
   pointer stayed parked on the Click button while recording. Fix for
   the final recording is in docs/click.py: after every click the
   pointer parks in the far corner, so no tooltip can appear.
+- Framing adjusted 24 Nov night, owner feedback on the cleaned
+  preview: full bleed 1152x576 feels too zoomed in. Final framing is
+  the v2 layout, verified in
+  docs/video/glance-demo-clean-v2-2026-11-24.mp4: the 576x288 display
+  is scaled to 1024x512 and centered on a clean 1280x720 charcoal
+  (0x111111) frame, giving even breathing room on all sides with no
+  simulator chrome and no clutter. This supersedes the full bleed
+  scale for the final video.
 - Narration script is written to fit the shot timings at a natural
   pace (about 150 words for a 60 to 90 second video at 140 to 175
   wpm). Record or generate the voice over as its own track, mix it
