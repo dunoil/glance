@@ -52,11 +52,36 @@ These are binding requirements for the final video, not suggestions.
 The current draft video stays untouched as an internal archive. All of
 the requirements above apply to the final video recorded on 27 Nov.
 
+## Telegram bot view segment (owner feedback, 24 Nov 2026)
+
+Duan asked why the video shows no Telegram bot view. He is right: the
+glasses only view proves the UI, but judges also need to see the
+Telegram side of the integration. The final video MUST include a
+Telegram segment, as its own clean segment (not mixed into the glasses
+frames, which stay display only per the clean screen rule):
+
+- Show the Telegram chat with @GlanceDigestBot (Telegram Web in Duan's
+  Chrome, chat 978207496): the incoming demo messages in the chat.
+- After the one tap send on the glasses, cut back to the same Telegram
+  chat and hold on the delivered reply appearing in the chat (the bot
+  replies already delivered live on 24 Nov have message_id 5, 6 and 7,
+  with texts stored in the backend digest as sent entries).
+- Capture this segment at recording time on 27 Nov so a fresh reply
+  lands in the chat on camera. If Telegram Web is not logged in in
+  Duan's Chrome at recording time, that login is a Duan step to queue,
+  not a reason to drop the segment.
+
 ## Shot list with target timings (total about 60 to 90 seconds)
 
 - 0 to 6s: Home card, digest count, one card at a time.
 - 6 to 18s: One message card, sender, first line, urgency tag.
 - 18 to 35s: Draft card (Gemini draft), then one tap send, Sent card.
+- 35 to 48s: Telegram segment: the @GlanceDigestBot chat, incoming
+  messages, then the sent reply visible in the chat (see the Telegram
+  bot view segment section above). Voice reply shots move after this
+  and the Market segment timings shift to fit, total stays under
+  90 seconds by trimming card holds, never the Market holds below
+  about 6 seconds per coin.
 - 35 to 48s: Voice reply path (added 26 Nov), if it is in the final build.
 - 48 to 83s: Market segment, five cards (watchlist expanded to five
   coins on 24 Nov, owner direction): BTC, ETH, SOL, HYPE and XRP, each
