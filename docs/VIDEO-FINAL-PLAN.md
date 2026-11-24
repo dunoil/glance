@@ -73,6 +73,17 @@ the requirements above apply to the final video recorded on 27 Nov.
   1280x640 output. No simulator buttons, no cursor, no black margins
   in the exported file. Determine the exact crop rectangle from a test
   frame before the real recording.
+- Owner feedback, 24 Nov 2026, on the simulator screenshots: the right
+  side has too much empty space. He is right: in the 1280x800 window
+  capture, the glasses content sits in the top of the right pane and
+  the rest of that pane is empty black. Measured on
+  docs/simulator-market-hype-2026-11-24.png, the green display text
+  bounding box on the right pane is x 664 to 1229, y 10 to 279, so the
+  576x288 display itself sits at about x 650, y 0 in the window.
+  Starting crop for the final video: ffmpeg crop=576:288:650:0, to be
+  confirmed against a test frame, then scaled to fill the output
+  frame. The finished video frame is the display and nothing else, so
+  the empty right pane disappears entirely.
 - Narration script is written to fit the shot timings at a natural
   pace (about 150 words for a 60 to 90 second video at 140 to 175
   wpm). Record or generate the voice over as its own track, mix it
