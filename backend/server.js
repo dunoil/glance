@@ -12,6 +12,8 @@
  *     GET /health  service status
  *     GET /digest  stored messages and price alerts, newest first
  *     GET /prices  live HyperLiquid mark prices for BTC, ETH, SOL, HYPE, XRP
+ *     POST /voice  transcribe a WAV from the G2 mic (Gemini STT) for a
+ *       voice reply; the app shows the transcript on a confirm card first
  * - Price alerts: on each refresh, a watched coin that moved 2 percent or
  *   more versus the previous check is appended to the digest and, when a
  *   demo chat id is known, also sent into that chat with the bot.
@@ -311,6 +313,47 @@ const GEMINI_HELPER = path.join(
   process.env.HOME || '/home/hatch',
   'workspace/custom-connectors/custom.gemini/bin/gemini_generate.py'
 );
+const GEMINI_TRANSCRIBE_HELPER = path.join(
+  process.env.HOME || '/home/hatch',
+  'workspace/custom-connectors/custom.gemini/bin/gemini_transcribe.py'
+);
+
+// ---------- Voice replies: speech to text (Gemini, key stays in vault) ----------
+
+function transcribeAudioFile(wavPath) {
+  return new Promise((resolve, reject) => {
+    execFile(
+      'python3',
+      [GEMINI_TRANSCRIBE_HELPER, wavPath, GEMINI_MODEL],
+      { timeout: 95000, maxBuffer: 4 * 1024 * 1024 },
+      (err, stdout, stderr) => {
+        if (err) {
+          reject(new Error((stderr || err.message || 'transcribe helper failed').trim().slice(0, 300)));
+          return;
+        }
+        try {
+          resolve(JSON.parse(stdout));
+        } catch (e) {
+          reject(e);
+        }
+      }
+    );
+  });
+}
+
+async function transcribeVoice(base64Audio) {
+  const buf = Buffer.from(base64Audio, 'base64');
+  if (!buf.length || buf.length > 4 * 1024 * 1024) throw new Error('audio too large or empty');
+  const tmpPath = path.join(DATA_DIR, 'voice-' + Date.now() + '-' + Math.floor(Math.random() * 1e6) + '.wav');
+  fs.writeFileSync(tmpPath, buf);
+  try {
+    const data = await transcribeAudioFile(tmpPath);
+    const text = extractGeminiText(data);
+    return text || null;
+  } finally {
+    try { fs.unlinkSync(tmpPath); } catch {}
+  }
+}
 
 function extractGeminiText(data) {
   return data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts ? data.candidates[0].content.parts.map(p => p.text || '').join('').trim() : '';
@@ -353,10 +396,11 @@ async function draftFor(item) {
   return result;
 }
 
-function readBody(req) {
+function readBody(req, maxBytes) {
+  const limit = maxBytes || 65536;
   return new Promise((resolve) => {
     let data = '';
-    req.on('data', (c) => { data += c; if (data.length > 65536) req.destroy(); });
+    req.on('data', (c) => { data += c; if (data.length > limit) req.destroy(); });
     req.on('end', () => { try { resolve(data ? JSON.parse(data) : {}); } catch { resolve({}); } });
     req.on('error', () => resolve({}));
   });
@@ -390,6 +434,7 @@ const server = http.createServer(async (req, res) => {
         digestItems: digest.length,
         knownChatId: state.knownChatId,
         geminiConfigured: Boolean(GEMINI_API_KEY) || fs.existsSync(GEMINI_HELPER),
+        voiceConfigured: fs.existsSync(GEMINI_TRANSCRIBE_HELPER),
         draftSource: 'gemini-via-vault-helper',
         pricesUpdatedAt: priceCache.updatedAt,
       });
@@ -402,6 +447,23 @@ const server = http.createServer(async (req, res) => {
       if (!item) { sendJson(res, 404, { ok: false, error: 'message not found' }); return; }
       const result = await draftFor(item);
       sendJson(res, 200, { ok: true, ...result, geminiConfigured: Boolean(GEMINI_API_KEY) || fs.existsSync(GEMINI_HELPER) });
+    } else if (url.pathname === '/voice' && req.method === 'POST') {
+      // Voice reply: the glasses app sends a WAV (16 kHz s16le mono, the
+      // G2 mic format) as base64; Gemini transcribes it and the app shows
+      // the transcript on a confirm card before anything is sent.
+      const body = await readBody(req, 4 * 1024 * 1024);
+      const audio = (body.audioBase64 || body.audio || '').toString();
+      if (!audio) { sendJson(res, 400, { ok: false, error: 'audioBase64 is required' }); return; }
+      const started = Date.now();
+      try {
+        const transcript = await transcribeVoice(audio);
+        if (!transcript) { sendJson(res, 200, { ok: false, error: 'no speech detected', ms: Date.now() - started }); return; }
+        log('voice: transcribed', transcript.length, 'chars in', Date.now() - started, 'ms');
+        sendJson(res, 200, { ok: true, transcript, model: GEMINI_MODEL, ms: Date.now() - started });
+      } catch (err) {
+        log('voice: transcribe failed:', err.message);
+        sendJson(res, 502, { ok: false, error: err.message });
+      }
     } else if (url.pathname === '/send' && req.method === 'POST') {
       const body = await readBody(req);
       const chatId = body.chatId || body.chat_id || state.knownChatId;

@@ -13,9 +13,13 @@ import { paginate } from './paginate'
 //   GET /prices  one Market card per watched coin (BTC, ETH, SOL, HYPE, XRP)
 //   POST /draft  AI draft reply for the selected message (Gemini, backend only)
 //   POST /send   one tap send of the draft through the Telegram bot
+//   POST /voice  transcribe a voice reply (G2 mic PCM s16le 16 kHz mono,
+//     wrapped as WAV; Gemini STT on the backend, key stays in the vault)
 // Navigation on G2: tap advances, and on a message card tap opens its draft
-// card, tap on the draft card sends it. Swipe up (scroll top) goes back,
-// swipe down (scroll bottom) moves to the next card. Double tap exits.
+// card, tap on the draft card sends it. Swipe down from a draft card opens
+// the voice reply card: tap to record, tap again to stop, then a confirm
+// card shows the transcript and tap sends it. Swipe up (scroll top) goes
+// back, swipe down (scroll bottom) moves to the next card. Double tap exits.
 
 const BACKEND = 'http://localhost:3000'
 const BODY_W = 576
@@ -36,11 +40,20 @@ interface DigestItem {
 }
 interface Coin { symbol: string; markPx: number; change24hPct: number }
 
-type CardKind = 'home' | 'message' | 'draft' | 'sent' | 'market' | 'info'
+type CardKind = 'home' | 'message' | 'draft' | 'sent' | 'market' | 'info' | 'voice' | 'confirm'
 interface Card { kind: CardKind; text: string; item?: DigestItem; draft?: string }
 
 let cards: Card[] = [{ kind: 'home', text: 'Glance\n\nLoading your Telegram digest...' }]
 let current = 0
+
+// Voice recording state lives here, above the container setup, because
+// pagerLabel() reads `recording` during startup and a `let` declared
+// below it would throw a temporal-dead-zone error and blank the display.
+let recording = false
+let pcmChunks: Uint8Array[] = []
+let pcmBytes = 0
+let recordTimer: number | null = null
+let recordStartedAt = 0
 
 function fmtPrice(n: number): string {
   return n >= 1000 ? n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : String(n)
@@ -117,8 +130,103 @@ if (created !== 0) console.error('createStartUpPageContainer failed:', created)
 
 function pagerLabel() {
   const c = cards[current]
-  const hint = c?.kind === 'message' ? 'tap: draft' : c?.kind === 'draft' ? 'tap: SEND' : 'tap: next'
+  let hint = 'tap: next'
+  if (recording) hint = 'tap: STOP recording'
+  else if (c?.kind === 'message') hint = 'tap: draft'
+  else if (c?.kind === 'draft') hint = 'tap: SEND'
+  else if (c?.kind === 'voice') hint = 'tap: record'
+  else if (c?.kind === 'confirm') hint = 'tap: SEND'
   return `${current + 1} / ${cards.length}  -  ${hint}  -  swipe up: prev  -  double-tap: exit`
+}
+
+// ---------- Voice replies (G2 mic, official asr pattern) ----------
+// The mic emits PCM s16le @ 16 kHz mono while bridge.audioControl(true)
+// is on; each audioEvent delivers a chunk. We collect chunks, wrap them
+// as a WAV, and POST it to /voice for Gemini transcription. Nothing is
+// sent to Telegram until the user taps SEND on the confirm card.
+const VOICE_MAX_SECONDS = 30
+const VOICE_MIN_BYTES = 8000 // about 0.25 s of audio; less means no speech
+
+function pcmToWav(pcm: Uint8Array, sampleRate = 16000): Uint8Array {
+  const out = new Uint8Array(44 + pcm.length)
+  const view = new DataView(out.buffer)
+  const writeStr = (off: number, s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)) }
+  writeStr(0, 'RIFF'); view.setUint32(4, 36 + pcm.length, true); writeStr(8, 'WAVE')
+  writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true)
+  view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true)
+  view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true)
+  writeStr(36, 'data'); view.setUint32(40, pcm.length, true)
+  out.set(pcm, 44)
+  return out
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = ''
+  const CHUNK = 0x8000
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    bin += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + CHUNK)))
+  }
+  return btoa(bin)
+}
+
+function listeningText(): string {
+  const secs = Math.floor((Date.now() - recordStartedAt) / 1000)
+  return `Voice reply\n\nListening... ${secs}s / ${VOICE_MAX_SECONDS}s\nSpeak now.\n\nTap: STOP and transcribe\nDouble tap: exit`
+}
+
+async function startRecording() {
+  if (recording || busy) return
+  recordStartedAt = Date.now()
+  pcmChunks = []
+  pcmBytes = 0
+  const ok = await bridge.audioControl(true).catch(() => false)
+  if (!ok) {
+    await showTransient('Glance\n\nMicrophone unavailable.\nThe glasses mic could not be opened.\nSwipe down to move on.')
+    return
+  }
+  recording = true
+  await showTransient(listeningText())
+  recordTimer = window.setInterval(() => {
+    if (!recording) return
+    const secs = Math.floor((Date.now() - recordStartedAt) / 1000)
+    if (secs >= VOICE_MAX_SECONDS) { stopRecording().catch(e => console.error(e)); return }
+    showTransient(listeningText()).catch(e => console.error(e))
+  }, 1000)
+}
+
+async function stopRecording() {
+  if (!recording) return
+  recording = false
+  if (recordTimer !== null) { clearInterval(recordTimer); recordTimer = null }
+  await bridge.audioControl(false).catch(() => {})
+  const voiceIdx = cards.findIndex(c => c.kind === 'voice')
+  const item = voiceIdx >= 0 ? cards[voiceIdx].item : null
+  if (pcmBytes < VOICE_MIN_BYTES) {
+    await showTransient('Glance\n\nNo speech captured.\nSpeak closer to the glasses mic and try again.\n(In the simulator there is no microphone, so nothing is captured.)')
+    return
+  }
+  if (!item) return
+  busy = true
+  try {
+    await showTransient('Glance\n\nTranscribing your voice...')
+    const total = new Uint8Array(pcmBytes)
+    let off = 0
+    for (const chunk of pcmChunks) { total.set(chunk, off); off += chunk.length }
+    const wav = pcmToWav(total)
+    const v = await fetchJson('/voice', { method: 'POST', body: JSON.stringify({ audioBase64: bytesToBase64(wav) }) })
+    const transcript = String(v.transcript || '').trim()
+    if (!v.ok || !transcript) throw new Error(v.error || 'transcription empty')
+    const confirmCard: Card = {
+      kind: 'confirm',
+      item,
+      draft: transcript,
+      text: `Voice reply to ${item.sender}  (transcribed)\n\n"${transcript}"\n\nTap: SEND this reply\nSwipe down: discard`,
+    }
+    cards.splice(voiceIdx + 1, 0, confirmCard)
+    await showCard(voiceIdx + 1)
+  } catch {
+    await showTransient('Glance\n\nTranscription failed. Nothing was sent.\nTap the voice card to try again.')
+  } finally { busy = false }
 }
 
 let rendering: Promise<unknown> = Promise.resolve()
@@ -136,6 +244,8 @@ async function showCard(index: number) {
 
 let busy = false
 async function onTap() {
+  // A tap while recording stops the recording from any card.
+  if (recording) { await stopRecording(); return }
   if (busy) return
   const card = cards[current]
   if (!card) return
@@ -149,16 +259,25 @@ async function onTap() {
         kind: 'draft',
         item: card.item,
         draft: draftText,
-        text: `Draft reply to ${card.item.sender}${d.source === 'gemini' ? '  (AI: Gemini)' : '  (AI draft)'}\n\n"${draftText}"\n\nTap: SEND this reply\nSwipe down: skip`,
+        text: `Draft reply to ${card.item.sender}${d.source === 'gemini' ? '  (AI: Gemini)' : '  (AI draft)'}\n\n"${draftText}"\n\nTap: SEND this reply\nSwipe down: voice reply`,
       }
-      cards.splice(current + 1, 0, draftCard)
+      const voiceCard: Card = {
+        kind: 'voice',
+        item: card.item,
+        text: `Voice reply to ${card.item.sender}\n\nTap to record (max ${VOICE_MAX_SECONDS}s).\nYour words are transcribed and shown for confirmation before anything is sent.\n\nTap: record\nSwipe down: next message`,
+      }
+      cards.splice(current + 1, 0, draftCard, voiceCard)
       await showCard(current + 1)
     } catch {
       await showTransient('Glance\n\nDraft failed. Backend unreachable.\nSwipe down for the next message.')
     } finally { busy = false }
     return
   }
-  if (card.kind === 'draft' && card.item && card.draft) {
+  if (card.kind === 'voice' && card.item) {
+    await startRecording()
+    return
+  }
+  if ((card.kind === 'draft' || card.kind === 'confirm') && card.item && card.draft) {
     busy = true
     try {
       await showTransient('Glance\n\nSending...')
@@ -184,7 +303,13 @@ async function showTransient(text: string) {
 }
 
 let cleanedUp = false
-function cleanup() { if (cleanedUp) return; cleanedUp = true; unsubscribe() }
+function cleanup() {
+  if (cleanedUp) return
+  cleanedUp = true
+  if (recording) { recording = false; bridge.audioControl(false).catch(() => {}) }
+  if (recordTimer !== null) { clearInterval(recordTimer); recordTimer = null }
+  unsubscribe()
+}
 
 function eventTypeOf(envelope?: { eventType?: OsEventTypeList }): OsEventTypeList | null {
   if (!envelope) return null
@@ -192,6 +317,15 @@ function eventTypeOf(envelope?: { eventType?: OsEventTypeList }): OsEventTypeLis
 }
 
 const unsubscribe = bridge.onEvenHubEvent(event => {
+  // Audio frames arrive on their own branch. Handle them first: a bare
+  // audio event carries no sysEvent/textEvent, and the CLICK_EVENT
+  // default must never be applied to it, or every frame would tap.
+  const pcm = event.audioEvent?.audioPcm
+  if (pcm && recording) {
+    const chunk = pcm instanceof Uint8Array ? pcm : new Uint8Array(pcm as unknown as ArrayLike<number>)
+    pcmChunks.push(chunk)
+    pcmBytes += chunk.length
+  }
   const sysType = eventTypeOf(event.sysEvent)
   const textType = eventTypeOf(event.textEvent)
   if (sysType === OsEventTypeList.DOUBLE_CLICK_EVENT || textType === OsEventTypeList.DOUBLE_CLICK_EVENT) {
@@ -213,7 +347,7 @@ app.innerHTML = `
     </header>
     <pre id="mirror" style="background:#2E2E2E;border:1px solid #3E3E3E;border-radius:12px;padding:20px;font-size:15px;line-height:1.55;white-space:pre-wrap;word-break:break-word;color:#E5E5E5;margin:0;"></pre>
     <footer style="font-size:12px;color:#7B7B7B;text-align:center;margin-top:16px;">
-      Tap glasses: draft, then send - swipe up: previous - swipe down: next - double-tap: exit
+      Tap glasses: draft, then send - swipe down from a draft: voice reply - swipe up: previous - swipe down: next - double-tap: exit
     </footer>
   </main>
 `

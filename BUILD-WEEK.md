@@ -185,8 +185,16 @@ notes live in SDK-NOTES.md; check there first on day 1.
 
 ## 26 Nov, voice path and polish
 
-- [ ] Voice reply: mic audio captured through the SDK, sent to the backend
+- [x] Voice reply: mic audio captured through the SDK, sent to the backend
       for speech to text, transcript shown on a confirm card, one tap to send.
+      BUILT 25 Nov 2026, a day early at Duan's direction: official asr
+      pattern (bridge.audioControl + audioEvent PCM s16le 16 kHz mono),
+      backend POST /voice with Gemini STT via the vault helper
+      (custom.gemini/bin/gemini_transcribe.py), confirm card before send,
+      g2-microphone permission in app.json. Backend verified live with a
+      real 10 s speech clip (transcribed in 5.7 s). The VM simulator has
+      no microphone, so an on-glasses recording still needs real G2
+      hardware or the simulator on a PC with a mic.
 - [ ] Error states: empty inbox, backend unreachable, draft failed, STT failed.
 - [ ] UX pass against the display constraints: one thing at a time, large
       targets for touch and the R1 ring, no walls of text.

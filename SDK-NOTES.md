@@ -77,6 +77,19 @@ Source: hub.evenrealities.com/docs (Your First App, App Submission and QA, video
   window and fetched the page (GET / 200). Lesson: recheck the toolchain at
   the start of every build week day, because a VM restart can wipe the npm
   tools and the system libraries together.
+- Voice day simulator notes (25 Nov 2026, 19:00 WITA): the VM restart wiped
+  the npm globals again, and `npm i -g` pulled the latest simulator 0.9.5
+  (CLI stayed 0.2.0). The local 0.7.3 simulator (node_modules) renders the
+  app but its input injection does NOT reach the app in this environment
+  (clicks on the Click/Down buttons and on the display leave the card
+  unchanged, no log warning). The global 0.9.5 simulator renders AND its
+  input works (Click advances cards, Down moves to the next card). For
+  input driven tests and video recording, use the global simulator.
+  TDZ lesson from the same session: a `let` read by pagerLabel() during
+  container setup must be declared ABOVE the bridge/container code, or the
+  module throws a temporal-dead-zone error and the display stays blank
+  (voice state `recording` was first declared below pagerLabel and the
+  whole app rendered nothing until the state was moved above).
 - Kickoff recheck (23 Nov 2026, 16:00 WITA): the VM had restarted AGAIN
   between the 14:25 pre-kickoff fix and the 16:00 kickoff, and wiped both
   the npm globals and the apt libraries a second time. evenhub was not

@@ -69,8 +69,16 @@ Google Gemini, HyperLiquid public API. Demo recorded in the official
 Even Hub simulator.
 
 Voice reply (dictate a reply, transcript shown for one-tap confirm)
-is planned and honestly marked as not in this build yet; it is the
-remaining build week item.
+was planned and honestly marked as not in this build yet at submit
+time. UPDATE 25 Nov 2026, 19:00 WITA: the voice path is now BUILT
+(a day early, at Duan's direction): G2 mic capture via the official
+asr pattern, backend POST /voice with Gemini STT (verified live with
+a real 10 s speech clip, transcribed in 5.7 s), confirm card before
+send, g2-microphone permission. The VM simulator has no microphone,
+so a full on-glasses recording still needs real G2 hardware or the
+simulator on a PC with a mic. The Build text and video have NOT been
+updated yet: editing Build 51846 and re-recording the video need
+Duan's explicit approval first.
 
 ## Result: SUBMITTED 25 Nov 2026
 

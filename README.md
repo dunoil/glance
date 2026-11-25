@@ -34,11 +34,13 @@ One glance, one tap: your Telegram, answered from your glasses.
 - Market: live read-only prices from the HyperLiquid public API for BTC, ETH,
   SOL, HYPE and XRP, one card per coin with its 24h change. A move of 2 percent
   or more between checks also flows into the digest as a price alert.
-- Voice (planned, not in this build yet): the user can dictate a reply instead.
-  Mic audio goes to the backend for speech to text, and the transcript is
-  shown for a one tap confirm before anything is sent. The UI already has
-  the basic error and empty inbox cards; the voice path is the remaining
-  build week item, scheduled 26 Nov 2026.
+- Voice (built 25 Nov 2026, a day early at the owner's direction): the user
+  can dictate a reply instead. Swipe down from a draft card to the voice
+  card, tap to record (G2 mic, PCM s16le 16 kHz mono, max 30 s, tap again
+  to stop), and the backend transcribes it with Gemini (key stays in the
+  vault) and shows the transcript on a confirm card for a one tap send.
+  Nothing is sent before the user confirms the transcript. Verified live
+  25 Nov: POST /voice transcribed a real 10 s speech clip in 5.7 s.
 
 The UI is designed for the G2 display (576x288, monochrome green, one thing at a
 time) and for the judging weights: usefulness on G2, true read and write,
@@ -69,8 +71,10 @@ adapted for the Glance digest reader). The backend lives in `backend/`
 (a single Node file, no external dependencies): Telegram long polling
 with a 50 second timeout, offset persisted across restarts, messages
 stored as a digest, Gemini drafts through the vault helper with a
-local fallback draft generator, and HyperLiquid prices refreshed every
-60 seconds. `app.json` at the project root is the Even Hub manifest:
+local fallback draft generator, HyperLiquid prices refreshed every
+60 seconds, and voice replies transcribed by Gemini STT through the
+vault helper (`POST /voice`, WAV from the G2 mic). `app.json` at the
+project root is the Even Hub manifest:
 package `com.dunoil.glance`, SDK 0.0.10, entrypoint `index.html`, and
 the backend `http://localhost:3000` on the network whitelist. For the
 demo and judging period the backend runs on the build VM under a
