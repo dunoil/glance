@@ -241,9 +241,10 @@ async function priceLoop() {
         if (typeof prev === 'number' && prev > 0) {
           const movePct = ((coin.markPx - prev) / prev) * 100;
           if (Math.abs(movePct) >= ALERT_THRESHOLD_PCT) {
-            // Say the direction plainly: "moved -4.07%" reads as if the
-            // price went up. A fall is a drop, a rise is a rise.
-            const direction = movePct >= 0 ? 'rose' : 'dropped';
+            // Direction word, per the owner's wording: up is "moved",
+            // down is "down". The old text always said "moved" even
+            // for a fall, which read as if the price had gone up.
+            const direction = movePct >= 0 ? 'moved' : 'down';
             const text =
               'Price alert: ' +
               coin.symbol +
