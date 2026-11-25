@@ -77,8 +77,10 @@ a real 10 s speech clip, transcribed in 5.7 s), confirm card before
 send, g2-microphone permission. The VM simulator has no microphone,
 so a full on-glasses recording still needs real G2 hardware or the
 simulator on a PC with a mic. The Build text and video have NOT been
-updated yet: editing Build 51846 and re-recording the video need
-Duan's explicit approval first.
+updated: Duan decided 25 Nov 2026 19:13 WITA to leave them as they
+are for now ("biarkan dulu seperti sekarang"). The voice code stays
+in the repo (commits 42f2b96, 313da6a); any Build edit or video
+re-record needs his explicit approval first.
 
 ## Result: SUBMITTED 25 Nov 2026
 
