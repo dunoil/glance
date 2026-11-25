@@ -72,6 +72,23 @@ Voice reply (dictate a reply, transcript shown for one-tap confirm)
 is planned and honestly marked as not in this build yet; it is the
 remaining build week item.
 
+## Result: SUBMITTED 25 Nov 2026
+
+- Confirmation shown: "Build Submitted! Your Build Glance has been
+  submitted to hackathon Heads Up: Even Realities Hackathon by TVM
+  Ventures & Daos Hub and is now under review. You can still edit
+  this Build before judging."
+- Build ID: 51846
+- Build URL: https://dorahacks.io/build/51846
+- Status verified on the hackathon builds page: Under Review.
+- Tag used: Crypto/Web3 (single tag only, per Duan's choice).
+- Contact: Telegram @cryptoyss, backup Discord jetz9851.
+- Correction to the earlier warning: the confirmation itself says
+  the Build can still be edited before judging, so the voice path
+  can still be added to the Build after 26 Nov if Duan wants it.
+  The earlier "only if declined" reading came from the modal text;
+  the live confirmation overrides it.
+
 ## Edit warning (from the form itself)
 
 Once submitted, the review team reviews the Build. The form states
