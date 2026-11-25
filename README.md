@@ -31,9 +31,14 @@ One glance, one tap: your Telegram, answered from your glasses.
 - Write: for each message the backend drafts a short reply with an LLM. The user
   sees the draft on the glasses and taps once to send it through the bot, or
   moves on to the next message.
-- Voice (optional path): the user can dictate a reply instead. Mic audio goes to
-  the backend for speech to text, and the transcript is shown for a one tap
-  confirm before anything is sent.
+- Market: live read-only prices from the HyperLiquid public API for BTC, ETH,
+  SOL, HYPE and XRP, one card per coin with its 24h change. A move of 2 percent
+  or more between checks also flows into the digest as a price alert.
+- Voice (planned, not in this build yet): the user can dictate a reply instead.
+  Mic audio goes to the backend for speech to text, and the transcript is
+  shown for a one tap confirm before anything is sent. The UI already has
+  the basic error and empty inbox cards; the voice path is the remaining
+  build week item, scheduled 26 Nov 2026.
 
 The UI is designed for the G2 display (576x288, monochrome green, one thing at a
 time) and for the judging weights: usefulness on G2, true read and write,
@@ -60,12 +65,17 @@ xvfb-run evenhub-simulator http://localhost:5173
 ```
 
 The app is the Vite web app in `src/` (official text-heavy template,
-adapted for the Glance digest reader). The small backend lives in
-`backend/` (lands 24 Nov). `app.json` at the project root is the Even
-Hub manifest: package `com.dunoil.glance`, SDK 0.0.10, entrypoint
-`index.html`, and the local backend `http://localhost:3000` on the
-network whitelist. The production backend domain is added on 24 Nov
-when the backend host is decided.
+adapted for the Glance digest reader). The backend lives in `backend/`
+(a single Node file, no external dependencies): Telegram long polling
+with a 50 second timeout, offset persisted across restarts, messages
+stored as a digest, Gemini drafts through the vault helper with a
+local fallback draft generator, and HyperLiquid prices refreshed every
+60 seconds. `app.json` at the project root is the Even Hub manifest:
+package `com.dunoil.glance`, SDK 0.0.10, entrypoint `index.html`, and
+the backend `http://localhost:3000` on the network whitelist. For the
+demo and judging period the backend runs on the build VM under a
+supervisor loop (`backend/run.sh`) through Demo Day 3 Dec 2026; the
+simulator demo runs against that same backend.
 
 Packaging (optional for the DoraHacks submission, kept as a fallback
 artifact):
@@ -75,10 +85,27 @@ npm run build
 evenhub pack app.json dist --sdk-ver 0.0.10 --output glance.ehpk
 ```
 
-## Submission contents (target: 28 Nov 2026)
+## Submission contents
 
 - This public repo with setup instructions.
-- Demo video, up to 3 minutes, recorded in the official simulator.
+- Demo video, up to 3 minutes, recorded in the official simulator:
+  `docs/video/glance-demo-final-2026-11-25.mp4` (89 seconds, 1280x720,
+  English voice over, clean v2 framing). The video shows the real
+  digest, a Gemini draft, a live send (Telegram message_id 9), all
+  five Market cards with live prices, and a Telegram delivery proof
+  card built from the real backend log.
 - Short description: problem, who it is for, how it works, track (in the
   DoraHacks submission and mirrored in docs/).
-- Optional .ehpk package built with the evenhub CLI.
+- Optional .ehpk package built with the evenhub CLI:
+  `npm run build && evenhub pack app.json dist --sdk-ver 0.0.10`.
+
+## Verified live (25 Nov 2026)
+
+- Backend health, digest (8 items), prices (5 coins) live on
+  http://localhost:3000.
+- Real Telegram sends delivered: message_id 5, 6, 7 and 9.
+- First live 2 percent price alert: HYPE -4.07 percent, delivered
+  to the demo chat 25 Nov 08:55 WITA.
+- Drafts come from Gemini (gemini-3.5-flash-lite) with a local
+  fallback when Gemini is unavailable.
+- `npm run build` clean; `evenhub pack` clean (66 KB .ehpk).
