@@ -139,3 +139,29 @@ frames, which stay display only per the clean screen rule):
 - Verify the extracted frames after recording: home, message, draft,
   sent, and all five Market cards must each appear in the final cut
   before upload, and a frame check must confirm the crop is clean.
+
+## Status: final video built early, 25 Nov 2026
+
+Built ahead of the 27 Nov slot at the owner's request:
+docs/video/glance-demo-final-2026-11-25.mp4, 89 seconds, 1280x720.
+Contents verified by frame checks: home (4 messages waiting), the
+URGENT HYPE price alert message card, the Gemini draft card (labelled
+AI: Gemini, draft text "Thanks for the heads up."), the sent card,
+all five Market cards with live prices (BTC $59,598 -2.77 percent,
+ETH $1,672 -2.23 percent, SOL $69.644 -3.50 percent, HYPE $59.1529
+-7.35 percent, XRP $0.92249 -2.12 percent), and a closing Telegram
+delivery proof card (message_id 9, sent during the recording itself).
+Framing is the v2 layout (display 1024x512 centered on a 1280x720
+charcoal frame). Voice over: docs/video/narration-final.mp3, 162
+words, raw render 58.44 seconds = 166 words per minute, silencedetect
+shows real sentence pauses of 0.32 to 0.70 seconds, no tempo fitting.
+Two honest gaps versus the original plan: the voice reply path is
+not in this cut because it is built on 26 Nov, and the Telegram
+segment is a delivery proof card built from the real backend log,
+not a screen capture of Telegram Web (the VM cannot capture the
+owner's PC screen). If the voice path lands well on 26 Nov, a
+re-record on 27 Nov can add both before the 28 Nov submit.
+Bonus milestone from the same morning: the 2 percent price alert
+fired live for the first time (HYPE -4.07 percent after a backend
+restart gap) and its sendMessage was delivered to chat 978207496,
+logged 2026-11-25T00:55:25Z.
